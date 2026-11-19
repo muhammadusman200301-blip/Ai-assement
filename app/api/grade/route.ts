@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GradeRequest, GradeSet } from "@/lib/schemas";
-import { structuredCompletion } from "@/lib/llm";
+import { structuredCompletion, LlmError } from "@/lib/llm";
 import { buildReport } from "@/lib/scoring";
 
 export async function POST(req: Request) {
@@ -35,8 +35,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...report, meta: { model, attempts } });
   } catch (err) {
     console.error(err);
+    const reason = err instanceof LlmError ? err.reason : "unknown";
     return NextResponse.json(
-      { error: "Could not grade answers right now. Please try again." },
+      { reason, error: "Could not grade answers right now. Please try again." },
       { status: 502 }
     );
   }
