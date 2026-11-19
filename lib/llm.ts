@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 import type { ZodType } from "zod";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.trim() });
+// Any OpenAI-compatible provider works (OpenAI, Groq, ...): set OPENAI_BASE_URL to switch.
+const BASE_URL = process.env.OPENAI_BASE_URL?.trim() || undefined;
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.trim(), baseURL: BASE_URL });
+const HOST = BASE_URL ? new URL(BASE_URL).host : "api.openai.com";
 
 /** Error with a short, safe reason code (never includes the key or raw message). */
 export class LlmError extends Error {
@@ -74,12 +77,12 @@ export async function structuredCompletion<T>(
       } catch (err) {
         lastError = err;
         const reason = reasonOf(err);
-        if (FATAL.has(reason)) throw new LlmError(`LLM call failed: ${reason}`, reason);
+        if (FATAL.has(reason)) throw new LlmError(`LLM call failed: ${reason}`, `${reason}@${HOST}`);
       }
       // simple exponential backoff: 400ms, 800ms, 1600ms...
       await sleep(400 * 2 ** i);
     }
   }
 
-  throw new LlmError(`LLM failed after ${attempts} attempts`, reasonOf(lastError));
+  throw new LlmError(`LLM failed after ${attempts} attempts`, `${reasonOf(lastError)}@${HOST}`);
 }
