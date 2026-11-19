@@ -1,5 +1,7 @@
 # AI Assessment
 
+**Live demo:** https://ai-assessment-usman.vercel.app
+
 A small Next.js app that runs a technical skill assessment with an LLM. You pick a role and level, it writes practical interview questions, you answer them, and it grades each answer against a rubric and shows what you covered and what you missed.
 
 Built with **Next.js (App Router)**, **TypeScript**, **OpenAI** and **Zod**.
