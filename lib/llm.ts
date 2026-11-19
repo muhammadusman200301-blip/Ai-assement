@@ -1,10 +1,28 @@
 import OpenAI from "openai";
 import type { ZodType } from "zod";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY?.trim() });
 
-const PRIMARY = process.env.PRIMARY_MODEL ?? "gpt-4o";
-const FALLBACK = process.env.FALLBACK_MODEL ?? "gpt-4o-mini";
+/** Error with a short, safe reason code (never includes the key or raw message). */
+export class LlmError extends Error {
+  constructor(message: string, public reason: string) {
+    super(message);
+  }
+}
+
+function reasonOf(err: unknown): string {
+  const e = err as { status?: number; code?: string };
+  if (e?.code) return e.code; // e.g. invalid_api_key, insufficient_quota, model_not_found
+  if (e?.status) return `http_${e.status}`;
+  if (err instanceof SyntaxError) return "bad_json";
+  return "unknown";
+}
+
+// Errors that will not fix themselves on retry
+const FATAL = new Set(["invalid_api_key", "insufficient_quota", "http_401"]);
+
+const PRIMARY = process.env.PRIMARY_MODEL?.trim() || "gpt-4o";
+const FALLBACK = process.env.FALLBACK_MODEL?.trim() || "gpt-4o-mini";
 
 export type LlmResult<T> = { data: T; model: string; attempts: number };
 
@@ -55,11 +73,13 @@ export async function structuredCompletion<T>(
         lastError = new Error(`Schema mismatch: ${parsed.error.issues[0]?.message}`);
       } catch (err) {
         lastError = err;
+        const reason = reasonOf(err);
+        if (FATAL.has(reason)) throw new LlmError(`LLM call failed: ${reason}`, reason);
       }
       // simple exponential backoff: 400ms, 800ms, 1600ms...
       await sleep(400 * 2 ** i);
     }
   }
 
-  throw new Error(`LLM failed after ${attempts} attempts: ${String(lastError)}`);
+  throw new LlmError(`LLM failed after ${attempts} attempts`, reasonOf(lastError));
 }
