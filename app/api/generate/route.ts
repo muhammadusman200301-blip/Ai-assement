@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GenerateRequest, QuestionSet } from "@/lib/schemas";
-import { structuredCompletion } from "@/lib/llm";
+import { structuredCompletion, LlmError } from "@/lib/llm";
 
 export async function POST(req: Request) {
   const body = GenerateRequest.safeParse(await req.json().catch(() => null));
@@ -21,8 +21,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...data, meta: { model, attempts } });
   } catch (err) {
     console.error(err);
+    const reason = err instanceof LlmError ? err.reason : "unknown";
     return NextResponse.json(
-      { error: "Could not generate questions right now. Please try again." },
+      { reason, error: "Could not generate questions right now. Please try again." },
       { status: 502 }
     );
   }
