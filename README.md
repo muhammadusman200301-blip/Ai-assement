@@ -4,7 +4,9 @@
 
 A small Next.js app that runs a technical skill assessment with an LLM. You pick a role and level, it writes practical interview questions, you answer them, and it grades each answer against a rubric and shows what you covered and what you missed.
 
-Built with **Next.js (App Router)**, **TypeScript**, **OpenAI** and **Zod**.
+Built with **Next.js (App Router)**, **TypeScript**, the **OpenAI SDK** and **Zod**. It works with any OpenAI-compatible provider: the live demo runs on **Groq** (`openai/gpt-oss-120b`, falling back to `openai/gpt-oss-20b`), and switching to OpenAI is just a change of `OPENAI_BASE_URL` and model names.
+
+Health check: [`/api/health`](https://ai-assessment-usman.vercel.app/api/health) shows which provider and models are configured and whether they are available (no secrets returned).
 
 ## How it works
 
